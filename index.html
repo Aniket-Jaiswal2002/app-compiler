@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: #0a0a0f;
+    color: #e8e6f0;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  .header {
+    border-bottom: 1px solid #1e1e2e;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #0d0d18;
+  }
+
+  .logo {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #7c6af7;
+    text-transform: uppercase;
+  }
+
+  .logo-sep { color: #2a2a3e; }
+
+  .subtitle {
+    font-size: 12px;
+    color: #555575;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .main { display: flex; flex: 1; height: calc(100vh - 53px); }
+
+  .left-panel {
+    width: 380px;
+    min-width: 380px;
+    border-right: 1px solid #1e1e2e;
+    display: flex;
+    flex-direction: column;
+    background: #0d0d18;
+  }
+
+  .panel-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #555575;
+    text-transform: uppercase;
+    padding: 16px 20px 8px;
+  }
+
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #c8c6d8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    resize: none;
+    padding: 16px 20px;
+    outline: none;
+  }
+
+  textarea::placeholder { color: #333355; }
+
+  .actions {
+    padding: 16px 20px;
+    border-top: 1px solid #1e1e2e;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-generate {
+    background: #7c6af7;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-generate:hover:not(:disabled) { background: #6a59e0; }
+  .btn-generate:active:not(:disabled) { transform: scale(0.98); }
+  .btn-generate:disabled { background: #2a2a3e; color: #555575; cursor: not-allowed; }
+
+  .btn-example {
+    background: transparent;
+    color: #7c6af7;
+    border: 1px solid #2a2a3e;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+  }
+
+  .btn-example:hover { border-color: #7c6af7; background: #12122a; }
+
+  .right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pipeline-stages {
+    display: flex;
+    border-bottom: 1px solid #1e1e2e;
+    background: #0d0d18;
+    padding: 0 20px;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .stage-tab {
+    padding: 12px 16px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #555575;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+  }
+
+  .stage-tab:hover { color: #9988ff; }
+  .stage-tab.active { color: #7c6af7; border-bottom-color: #7c6af7; }
+
+  .stage-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #2a2a3e;
+    flex-shrink: 0;
+  }
+
+  .stage-dot.pending { background: #2a2a3e; }
+  .stage-dot.running { background: #f0b030; animation: pulse 1s infinite; }
+  .stage-dot.done { background: #3dca7a; }
+  .stage-dot.error { background: #e24b4a; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .output-area {
+    flex: 1;
+    overflow: auto;
+    padding: 20px;
+  }
+
+  .output-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: #333355;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .output-placeholder .big { font-size: 32px; }
+
+  .json-block {
+    background: #0d0d18;
+    border: 1px solid #1e1e2e;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    overflow: auto;
+    white-space: pre;
+    color: #c8c6d8;
+  }
+
+  .section-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: #555575;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-ok { background: #0a2e1a; color: #3dca7a; border: 1px solid #1a5a30; }
+  .badge-err { background: #2e0a0a; color: #e24b4a; border: 1px solid #5a1a1a; }
+  .badge-warn { background: #2e200a; color: #f0b030; border: 1px solid #5a3a1a; }
+  .badge-info { background: #0d0d2e; color: #7c6af7; border: 1px solid #2a2a5a; }
+
+  .validation-block {
+    background: #0d0d18;
+    border: 1px solid #1e1e2e;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .validation-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1a2a;
+    font-size: 12px;
+  }
+
+  .validation-row:last-child { border-bottom: none; }
+
+  .check-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+  .error-block {
+    background: #160808;
+    border: 1px solid #3a1515;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #e24b4a;
+    white-space: pre-wrap;
+  }
+
+  .progress-bar-wrap {
+    padding: 12px 20px;
+    border-bottom: 1px solid #1e1e2e;
+    background: #0a0a0f;
+    display: none;
+  }
+
+  .progress-bar-wrap.visible { display: block; }
+
+  .progress-label {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #7c6af7;
+    margin-bottom: 6px;
+  }
+
+  .progress-bar {
+    height: 2px;
+    background: #1e1e2e;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #7c6af7;
+    transition: width 0.4s ease;
+    border-radius: 1px;
+  }
+
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .metric-card {
+    background: #0d0d18;
+    border: 1px solid #1e1e2e;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .metric-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: #7c6af7;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: #555575;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .stage-section { margin-bottom: 20px; }
+
+  .assumptions-block {
+    background: #0d1a0d;
+    border: 1px solid #1a3a1a;
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .assumptions-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #3dca7a;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .assumption-item {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #8acca8;
+    padding: 3px 0;
+  }
+
+  .json-key { color: #7c6af7; }
+  .json-str { color: #f0b030; }
+  .json-num { color: #3dca7a; }
+  .json-bool { color: #e24b4a; }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #0a0a0f; }
+  ::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">AppCompiler</div>
+    <div class="logo-sep">|</div>
+    <div class="subtitle">natural language → validated app schema</div>
+  </div>
+
+  <div class="progress-bar-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">Initializing...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="main">
+    <div class="left-panel">
+      <div class="panel-label">Prompt</div>
+      <textarea id="promptInput" placeholder="Describe your application...
+
+Example:
+Build a CRM with login, contacts, dashboard, role-based access (admin/user), and premium plan with Stripe payments. Admins can see analytics."></textarea>
+
+      <div class="actions">
+        <button class="btn-generate" id="generateBtn" onclick="runPipeline()">
+          <span>▶</span> Generate Schema
+        </button>
+        <div style="font-size:10px;color:#333355;letter-spacing:0.1em;text-transform:uppercase;margin-top:4px">Quick examples</div>
+        <button class="btn-example" onclick="loadExample(0)">→ CRM with payments + RBAC</button>
+        <button class="btn-example" onclick="loadExample(1)">→ E-commerce marketplace</button>
+        <button class="btn-example" onclick="loadExample(2)">→ Project management tool</button>
+        <button class="btn-example" onclick="loadExample(3)">→ (Edge) Vague: make an app</button>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="pipeline-stages" id="pipelineTabs">
+        <div class="stage-tab" onclick="showStage('intent')" id="tab-intent">
+          <div class="stage-dot pending" id="dot-intent"></div>1. Intent
+        </div>
+        <div class="stage-tab" onclick="showStage('architecture')" id="tab-architecture">
+          <div class="stage-dot pending" id="dot-architecture"></div>2. Architecture
+        </div>
+        <div class="stage-tab" onclick="showStage('schema')" id="tab-schema">
+          <div class="stage-dot pending" id="dot-schema"></div>3. Schema Gen
+        </div>
+        <div class="stage-tab" onclick="showStage('validation')" id="tab-validation">
+          <div class="stage-dot pending" id="dot-validation"></div>4. Validation
+        </div>
+        <div class="stage-tab" onclick="showStage('final')" id="tab-final">
+          <div class="stage-dot pending" id="dot-final"></div>5. Final Output
+        </div>
+      </div>
+
+      <div class="output-area" id="outputArea">
+        <div class="output-placeholder">
+          <div class="big">⬡</div>
+          <div>Enter a prompt and click <strong style="color:#7c6af7">Generate Schema</strong></div>
+          <div style="font-size:11px;color:#2a2a4a;font-family:'JetBrains Mono',monospace">multi-stage LLM pipeline with validation + repair</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const EXAMPLES = [
+  "Build a CRM with login, contacts, dashboard, role-based access (admin and user roles), and a premium plan with Stripe payments. Admins can see analytics.",
+  "Create a marketplace where sellers can list products, buyers can purchase, both need accounts. Include order tracking, reviews, and seller analytics dashboard.",
+  "Build a project management tool like Asana. Users can create projects, tasks, assign to team members, set deadlines. Managers can see team progress reports.",
+  "make an app"
+];
+
+let stageData = {};
+let activeStage = 'intent';
+let startTime = 0;
+
+function loadExample(i) {
+  document.getElementById('promptInput').value = EXAMPLES[i];
+}
+
+function showStage(name) {
+  activeStage = name;
+  document.querySelectorAll('.stage-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  renderStage(name);
+}
+
+function setDot(stage, state) {
+  const d = document.getElementById('dot-' + stage);
+  d.className = 'stage-dot ' + state;
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function hideProgress() {
+  document.getElementById('progressWrap').classList.remove('visible');
+}
+
+function syntaxHighlight(json) {
+  if (typeof json !== 'string') json = JSON.stringify(json, null, 2);
+  return json
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+      let cls = 'json-num';
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) cls = 'json-key';
+        else cls = 'json-str';
+      } else if (/true|false/.test(match)) cls = 'json-bool';
+      return '<span class="' + cls + '">' + match + '</span>';
+    });
+}
+
+async function callClaude(systemPrompt, userMsg) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.content.map(b => b.text || '').join('');
+}
+
+function parseJSON(text) {
+  const clean = text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  return JSON.parse(clean);
+}
+
+function validateConsistency(schemas) {
+  const errors = [];
+  const warnings = [];
+  const checks = [];
+
+  const { db, api, ui, auth } = schemas;
+
+  // Check 1: All API endpoint entities exist in DB
+  if (api && db) {
+    const dbTables = (db.tables || []).map(t => t.name.toLowerCase());
+    (api.endpoints || []).forEach(ep => {
+      if (ep.entity) {
+        const found = dbTables.some(t => t.includes(ep.entity.toLowerCase()) || ep.entity.toLowerCase().includes(t.replace('s','')));
+        if (found) {
+          checks.push({ pass: true, msg: `API endpoint /${ep.path} → DB table exists` });
+        } else {
+          errors.push(`API endpoint /${ep.path} references entity "${ep.entity}" with no matching DB table`);
+          checks.push({ pass: false, msg: `API endpoint /${ep.path} → no DB table for "${ep.entity}"` });
+        }
+      }
+    });
+  }
+
+  // Check 2: Auth roles referenced in UI exist in auth schema
+  if (ui && auth) {
+    const definedRoles = (auth.roles || []).map(r => (typeof r === 'string' ? r : r.name).toLowerCase());
+    (ui.pages || []).forEach(page => {
+      if (page.access_roles) {
+        page.access_roles.forEach(role => {
+          if (!definedRoles.includes(role.toLowerCase())) {
+            errors.push(`UI page "${page.name}" references role "${role}" not defined in auth schema`);
+            checks.push({ pass: false, msg: `UI page "${page.name}" → role "${role}" undefined` });
+          } else {
+            checks.push({ pass: true, msg: `UI page "${page.name}" → role "${role}" verified` });
+          }
+        });
+      }
+    });
+  }
+
+  // Check 3: Premium gating has corresponding auth permission
+  if (auth && auth.permissions) {
+    const premiumPerms = auth.permissions.filter(p => p.toLowerCase().includes('premium') || p.toLowerCase().includes('payment'));
+    if (premiumPerms.length > 0) {
+      checks.push({ pass: true, msg: `Premium gating permissions found: ${premiumPerms.slice(0,2).join(', ')}` });
+    }
+  }
+
+  // Check 4: DB tables have primary keys
+  if (db) {
+    (db.tables || []).forEach(table => {
+      const hasPK = (table.columns || []).some(c => c.primary_key || c.name === 'id');
+      if (hasPK) {
+        checks.push({ pass: true, msg: `Table "${table.name}" has primary key` });
+      } else {
+        warnings.push(`Table "${table.name}" missing explicit primary key`);
+        checks.push({ pass: false, msg: `Table "${table.name}" → no primary key found`, warn: true });
+      }
+    });
+  }
+
+  // Check 5: UI has at least one auth page
+  if (ui) {
+    const hasAuth = (ui.pages || []).some(p => p.name.toLowerCase().includes('login') || p.name.toLowerCase().includes('auth') || p.name.toLowerCase().includes('register'));
+    if (hasAuth) {
+      checks.push({ pass: true, msg: 'UI includes authentication page' });
+    } else {
+      warnings.push('UI missing authentication page (login/register)');
+      checks.push({ pass: false, msg: 'UI → no login/register page found', warn: true });
+    }
+  }
+
+  return { errors, warnings, checks };
+}
+
+async function runPipeline() {
+  const prompt = document.getElementById('promptInput').value.trim();
+  if (!prompt) return;
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Running pipeline...';
+
+  stageData = {};
+  startTime = Date.now();
+  ['intent','architecture','schema','validation','final'].forEach(s => setDot(s, 'pending'));
+
+  // ── STAGE 1: INTENT EXTRACTION ──
+  setDot('intent', 'running');
+  setProgress(5, 'Stage 1/4 — Intent Extraction');
+  showStage('intent');
+  renderStage('intent', 'running');
+
+  try {
+    const intentRaw = await callClaude(
+      `You are an intent extraction engine for an app compiler. Extract structured intent from user prompts.
+Respond ONLY with valid JSON, no markdown, no explanation.
+Schema: {
+  "entities": ["string"],
+  "roles": ["string"],
+  "features": ["string"],
+  "premium_features": ["string"],
+  "auth_required": boolean,
+  "payment_required": boolean,
+  "ambiguities": ["string"],
+  "assumptions": ["string"]
+}`,
+      `Extract intent from: "${prompt}"`
+    );
+
+    stageData.intent = parseJSON(intentRaw);
+    setDot('intent', 'done');
+    setProgress(25, 'Stage 2/4 — Architecture Design');
+
+    // ── STAGE 2: ARCHITECTURE ──
+    setDot('architecture', 'running');
+    showStage('architecture');
+    renderStage('architecture', 'running');
+
+    const archRaw = await callClaude(
+      `You are a system architecture designer. Given extracted intent, produce an app architecture.
+Respond ONLY with valid JSON, no markdown, no explanation.
+Schema: {
+  "entity_relationships": [{"from":"string","to":"string","type":"string"}],
+  "feature_components": [{"feature":"string","components":["string"]}],
+  "data_flows": [{"name":"string","steps":["string"]}],
+  "tech_stack": {"frontend":"string","backend":"string","database":"string","auth":"string"}
+}`,
+      `Design architecture for intent: ${JSON.stringify(stageData.intent)}`
+    );
+
+    stageData.architecture = parseJSON(archRaw);
+    setDot('architecture', 'done');
+    setProgress(50, 'Stage 3/4 — Schema Generation');
+
+    // ── STAGE 3: SCHEMA GENERATION ──
+    setDot('schema', 'running');
+    showStage('schema');
+    renderStage('schema', 'running');
+
+    const schemaRaw = await callClaude(
+      `You are a schema generation engine. Produce complete DB, API, UI, and Auth schemas.
+Respond ONLY with valid JSON, no markdown, no explanation.
+Schema: {
+  "db": {
+    "tables": [{"name":"string","columns":[{"name":"string","type":"string","nullable":boolean,"primary_key":boolean,"foreign_key":"string|null"}],"indexes":["string"]}]
+  },
+  "api": {
+    "base_url": "/api/v1",
+    "endpoints": [{"path":"string","method":"string","auth_required":boolean,"roles":["string"],"entity":"string","description":"string"}]
+  },
+  "ui": {
+    "pages": [{"name":"string","route":"string","access_roles":["string"],"components":["string"]}],
+    "theme": {"primary_color":"string","layout":"string"}
+  },
+  "auth": {
+    "strategy": "string",
+    "roles": ["string"],
+    "permissions": ["string"],
+    "premium_gates": ["string"]
+  }
+}`,
+      `Generate complete schemas for: Intent=${JSON.stringify(stageData.intent)} Architecture=${JSON.stringify(stageData.architecture)}`
+    );
+
+    stageData.schema = parseJSON(schemaRaw);
+    setDot('schema', 'done');
+    setProgress(75, 'Stage 4/4 — Validation + Repair');
+
+    // ── STAGE 4: VALIDATION ──
+    setDot('validation', 'running');
+    showStage('validation');
+
+    const validationResult = validateConsistency(stageData.schema);
+    stageData.validation = validationResult;
+
+    let repaired = false;
+    if (validationResult.errors.length > 0) {
+      setProgress(82, 'Repair engine active — fixing inconsistencies...');
+
+      const repairRaw = await callClaude(
+        `You are a schema repair engine. Fix validation errors in the schema.
+Respond ONLY with the corrected full schema JSON. No markdown, no explanation.
+Same schema structure as input.`,
+        `Fix these validation errors: ${JSON.stringify(validationResult.errors)}
+In this schema: ${JSON.stringify(stageData.schema)}`
+      );
+
+      stageData.schema = parseJSON(repairRaw);
+      const recheck = validateConsistency(stageData.schema);
+      stageData.validation = recheck;
+      stageData.validation.repaired = true;
+      repaired = true;
+    }
+
+    stageData.validation.repaired = repaired;
+    setDot('validation', stageData.validation.errors.length === 0 ? 'done' : 'error');
+
+    // ── STAGE 5: FINAL ──
+    stageData.final = {
+      generated_at: new Date().toISOString(),
+      latency_ms: Date.now() - startTime,
+      validation_passed: stageData.validation.errors.length === 0,
+      repaired,
+      warnings_count: stageData.validation.warnings.length,
+      checks_passed: stageData.validation.checks.filter(c => c.pass).length,
+      checks_total: stageData.validation.checks.length,
+      schema: stageData.schema
+    };
+
+    setDot('final', 'done');
+    setProgress(100, 'Pipeline complete');
+    setTimeout(hideProgress, 1500);
+    showStage('final');
+
+  } catch (err) {
+    const stage = !stageData.intent ? 'intent' : !stageData.architecture ? 'architecture' : !stageData.schema ? 'schema' : 'validation';
+    setDot(stage, 'error');
+    stageData[stage + '_error'] = err.message;
+    renderStage(activeStage);
+    hideProgress();
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<span>▶</span> Generate Schema';
+  renderStage(activeStage);
+}
+
+function renderStage(name, state) {
+  const area = document.getElementById('outputArea');
+
+  if (state === 'running') {
+    area.innerHTML = `<div class="output-placeholder">
+      <div style="width:32px;height:32px;border:2px solid #7c6af7;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <div style="color:#7c6af7;font-family:'JetBrains Mono',monospace;font-size:12px">Running stage ${name}...</div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+    return;
+  }
+
+  const d = stageData;
+
+  if (name === 'intent') {
+    if (!d.intent) return;
+    area.innerHTML = `
+      <div class="stage-section">
+        <div class="section-header">Intent IR <span class="badge badge-ok">EXTRACTED</span></div>
+        ${d.intent.ambiguities && d.intent.ambiguities.length > 0 ? `
+          <div class="assumptions-block">
+            <div class="assumptions-title">⚠ Ambiguities Detected</div>
+            ${d.intent.ambiguities.map(a => `<div class="assumption-item">? ${a}</div>`).join('')}
+          </div>` : ''}
+        ${d.intent.assumptions && d.intent.assumptions.length > 0 ? `
+          <div class="assumptions-block">
+            <div class="assumptions-title">✓ Assumptions Made</div>
+            ${d.intent.assumptions.map(a => `<div class="assumption-item">→ ${a}</div>`).join('')}
+          </div>` : ''}
+        <div class="json-block">${syntaxHighlight(d.intent)}</div>
+      </div>`;
+  }
+
+  else if (name === 'architecture') {
+    if (!d.architecture) return;
+    area.innerHTML = `
+      <div class="stage-section">
+        <div class="section-header">Architecture IR <span class="badge badge-ok">DESIGNED</span></div>
+        <div class="json-block">${syntaxHighlight(d.architecture)}</div>
+      </div>`;
+  }
+
+  else if (name === 'schema') {
+    if (!d.schema) return;
+    area.innerHTML = `
+      <div class="stage-section">
+        <div class="section-header">DB Schema <span class="badge badge-info">${(d.schema.db?.tables||[]).length} tables</span></div>
+        <div class="json-block" style="margin-bottom:16px">${syntaxHighlight(d.schema.db || {})}</div>
+        <div class="section-header">API Schema <span class="badge badge-info">${(d.schema.api?.endpoints||[]).length} endpoints</span></div>
+        <div class="json-block" style="margin-bottom:16px">${syntaxHighlight(d.schema.api || {})}</div>
+        <div class="section-header">UI Schema <span class="badge badge-info">${(d.schema.ui?.pages||[]).length} pages</span></div>
+        <div class="json-block" style="margin-bottom:16px">${syntaxHighlight(d.schema.ui || {})}</div>
+        <div class="section-header">Auth Schema</div>
+        <div class="json-block">${syntaxHighlight(d.schema.auth || {})}</div>
+      </div>`;
+  }
+
+  else if (name === 'validation') {
+    if (!d.validation) return;
+    const v = d.validation;
+    const passed = v.checks.filter(c => c.pass).length;
+    area.innerHTML = `
+      <div class="stage-section">
+        <div class="section-header">
+          Validation Engine
+          ${v.errors.length === 0 ? '<span class="badge badge-ok">ALL CLEAR</span>' : `<span class="badge badge-err">${v.errors.length} ERRORS</span>`}
+          ${v.repaired ? '<span class="badge badge-warn">REPAIRED</span>' : ''}
+        </div>
+        <div class="metrics-row">
+          <div class="metric-card"><div class="metric-val">${passed}/${v.checks.length}</div><div class="metric-label">Checks Passed</div></div>
+          <div class="metric-card"><div class="metric-val" style="color:${v.errors.length?'#e24b4a':'#3dca7a'}">${v.errors.length}</div><div class="metric-label">Errors</div></div>
+          <div class="metric-card"><div class="metric-val" style="color:#f0b030">${v.warnings.length}</div><div class="metric-label">Warnings</div></div>
+          <div class="metric-card"><div class="metric-val" style="color:${v.repaired?'#f0b030':'#555575'}">${v.repaired ? 'YES' : 'NO'}</div><div class="metric-label">Repaired</div></div>
+        </div>
+        <div class="validation-block">
+          ${v.checks.map(c => `
+            <div class="validation-row">
+              <span class="check-icon">${c.pass ? '✓' : c.warn ? '⚠' : '✗'}</span>
+              <span style="color:${c.pass ? '#3dca7a' : c.warn ? '#f0b030' : '#e24b4a'};font-family:'JetBrains Mono',monospace;font-size:11px">${c.msg}</span>
+            </div>`).join('')}
+        </div>
+        ${v.warnings.length > 0 ? `
+          <div class="section-header" style="margin-top:16px">Warnings</div>
+          ${v.warnings.map(w => `<div class="error-block" style="color:#f0b030;background:#1a1000;border-color:#3a2800">⚠ ${w}</div>`).join('')}` : ''}
+      </div>`;
+  }
+
+  else if (name === 'final') {
+    if (!d.final) return;
+    const f = d.final;
+    area.innerHTML = `
+      <div class="stage-section">
+        <div class="section-header">
+          Pipeline Output
+          <span class="badge ${f.validation_passed ? 'badge-ok' : 'badge-err'}">${f.validation_passed ? 'VALID' : 'INVALID'}</span>
+          ${f.repaired ? '<span class="badge badge-warn">AUTO-REPAIRED</span>' : ''}
+        </div>
+        <div class="metrics-row">
+          <div class="metric-card"><div class="metric-val">${f.latency_ms}ms</div><div class="metric-label">Total Latency</div></div>
+          <div class="metric-card"><div class="metric-val">${f.checks_passed}/${f.checks_total}</div><div class="metric-label">Checks Passed</div></div>
+          <div class="metric-card"><div class="metric-val">${f.warnings_count}</div><div class="metric-label">Warnings</div></div>
+          <div class="metric-card"><div class="metric-val">4</div><div class="metric-label">Stages Run</div></div>
+        </div>
+        <div class="section-header">Complete Schema (Production Artifact)</div>
+        <div class="json-block">${syntaxHighlight(f.schema)}</div>
+      </div>`;
+  }
+}
+</script>
+</body>
+</html>
