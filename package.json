@@ -1,0 +1,32 @@
+{
+  "name": "app-compiler",
+  "version": "1.0.0",
+  "description": "Convert natural language into validated, executable app schemas.",
+  "main": "index.js",
+  "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Aniket-Jaiswal2002/app-compiler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Aniket-Jaiswal2002/app-compiler/issues"
+  },
+  "homepage": "https://github.com/Aniket-Jaiswal2002/app-compiler#readme",
+  "dependencies": {
+    "@types/node": "^25.9.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "next": "^16.2.7",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "typescript": "^6.0.3"
+  }
+}
