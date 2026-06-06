@@ -43,7 +43,7 @@ Return this exact structure:
       }),
     });
     const intentData = await intentRes.json();
-    const intentText = intentData.content[0].text;
+    const intentText = intentData.choices[0].message.content;
     const intentParsed = JSON.parse(intentText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
     setIntent(intentParsed);
 
@@ -67,7 +67,7 @@ Return this exact structure:
       }),
     });
     const archData = await archRes.json();
-    const archText = archData.content[0].text;
+    const archText = archData.choices[0].message.content;
     const archParsed = JSON.parse(archText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
     setArchitecture(archParsed);  
     
@@ -102,7 +102,7 @@ Return this exact structure:
       }),
     });
     const schemaData = await schemaRes.json();
-    const schemaText = schemaData.content[0].text;
+    const schemaText = schemaData.choices[0].message.content;
     const schemaParsed = JSON.parse(schemaText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
     setSchema(schemaParsed);
 

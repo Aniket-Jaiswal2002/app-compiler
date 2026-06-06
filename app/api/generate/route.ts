@@ -1,16 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-export async function POST(request: NextRequest) {
-    const body = await request.json();
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  const messages = body.system
+    ? [{ role: "system", content: body.system }, ...body.messages]
+    : body.messages;
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY!,
-      "anthropic-version": "2023-06-01",
-      },
-    body: JSON.stringify({ ...body }),
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      max_tokens: 1000,
+      messages: messages,
+    }),
   });
+
   const data = await response.json();
   return NextResponse.json(data);
 }
-
