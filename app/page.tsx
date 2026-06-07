@@ -5,11 +5,12 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [output,setOutput] = useState(null);
     const [stage, setStage] = useState("");
-    const [intent, setIntent] = useState(null);
+    const [intent, setIntent] = useState<any>(null);
     const [architecture, setArchitecture] = useState(null);
     const [schema, setSchema] = useState(null);
     const [validation, setValidation] = useState<any>(null);
     const [error,setError] = useState("");
+    const [activeTab, setActiveTab] = useState("intent");
     
 function safeParseJSON(text: string): any | null {
   try {
@@ -88,6 +89,12 @@ Return this exact structure:
       }),
     });
     const intentData = await intentRes.json();
+    if (intentData.error) {
+      setError(intentData.error.message || "API error. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
     const intentText = intentData.choices[0]?.message?.content;
     if (!intentText) {
       setError(intentData.error?.message || "No response from AI. Please try again.");
@@ -103,6 +110,7 @@ Return this exact structure:
       return;
     }
     setIntent(intentParsed);
+    setActiveTab("intent");
 
     //Stage 2 - Architecture Design 
 
@@ -124,6 +132,12 @@ Return this exact structure:
       }),
     });
     const archData = await archRes.json();
+    if (archData.error) {
+      setError(archData.error.message || "API error. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
     const archText = archData.choices[0]?.message?.content;
     if (!archText) {
       setError(archData.error?.message || "No response from AI. Please try again.");
@@ -138,7 +152,8 @@ Return this exact structure:
       setStage("");
       return;
     }
-    setArchitecture(archParsed);  
+    setArchitecture(archParsed); 
+    setActiveTab("architecture"); 
     
     // Stage 3 - Schema Generation
     setStage("Generating schemas...");
@@ -172,6 +187,12 @@ Return this exact structure:
       }),
     });    
     const schemaData = await schemaRes.json();
+    if (schemaData.error) {
+      setError(schemaData.error.message || "API error. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
     const schemaText = schemaData.choices[0]?.message?.content;
     if (!schemaText) {
       setError(schemaData.error?.message || "No response from AI. Please try again.");
@@ -188,6 +209,7 @@ Return this exact structure:
     }
     console.log("schemaParsed value:", schemaParsed);
     setSchema(schemaParsed);
+    setActiveTab("schema");
 
     // Stage 4 - Validation
     setStage("Validating schemas...");
@@ -225,6 +247,7 @@ Return this exact structure:
 
     const validationResult = { errors, checks, passed: errors.length === 0 };
     setValidation(validationResult);
+    setActiveTab("validation");
     setOutput(schemaParsed);
 
     // Repair Engine
@@ -274,77 +297,177 @@ In this schema: ${JSON.stringify(schemaParsed)}`
   }
 }
     return (
-    <div style={{ padding: "40px", maxWidth: "800px", margin: "0 auto" }}>
-      <h1>AppCompiler</h1>
-      <p>Natural language → validated app schema</p>
-
-      <textarea
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Describe your application..."
-        rows={6}
-        style={{ width: "100%", padding: "12px", fontSize: "14px", marginTop: "20px" }}
-      />
-
-      <button
-        onClick={() => runPipeline().catch((err: any) => {
-          setError(err.message || "Something went wrong.");
-          setLoading(false);
-          setStage("");
-        })}
-        disabled={loading || !prompt.trim()}
-        style={{ marginTop: "12px", padding: "12px 24px", fontSize: "14px" }}
-      >
-        {loading ? stage || "Running..." : "Generate Schema"}
-      </button>
-
-      {error && (
-        <div style={{ marginTop: "16px", color: "red", padding: "12px", background: "#fff0f0", borderRadius: "8px" }}>
-          ⚠ {error}
+    <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif" }}>
+      
+      {/* Left Panel */}
+      <div style={{ width: "360px", minWidth: "360px", borderRight: "1px solid #1e1e2e", display: "flex", flexDirection: "column", background: "#0f0f17" }}>
+        
+        {/* Header */}
+        <div style={{ padding: "24px", borderBottom: "1px solid #1e1e2e" }}>
+          <div style={{ fontSize: "20px", fontWeight: "800", color: "#ffffff", letterSpacing: "-0.5px" }}>
+            App<span style={{ color: "#6366f1" }}>Compiler</span>
+          </div>
+          <div style={{ fontSize: "11px", color: "#6b7280", marginTop: "6px", letterSpacing: "0.05em" }}>NATURAL LANGUAGE → APP SCHEMA</div>
         </div>
-      )}
 
-      {intent && (
-        <div style={{ marginTop: "24px" }}>
-          <h2>Stage 1 — Intent</h2>
-          <pre style={{ background: "#f4f4f4", padding: "16px", overflow: "auto" }}>
-            {JSON.stringify(intent, null, 2)}
-          </pre>
+        {/* Prompt Input */}
+        <div style={{ padding: "20px", flex: 1, display: "flex", flexDirection: "column" }}>
+          <label style={{ fontSize: "12px", fontWeight: "600", color: "#4b5563", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Prompt
+          </label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe your application...&#10;&#10;Example: Build a CRM with login, contacts, dashboard, admin and user roles, and payments."
+            style={{ flex: 1, padding: "12px", fontSize: "13px", lineHeight: "1.6", border: "1px solid #2a2a3e", borderRadius: "8px", resize: "none", outline: "none", fontFamily: "'Inter', sans-serif", color: "#e2e8f0", background: "#1a1a2e" }}
+          />
         </div>
-      )}
 
-      {architecture && (
-        <div style={{ marginTop: "24px" }}>
-          <h2>Stage 2 — Architecture</h2>
-          <pre style={{ background: "#f4f4f4", padding: "16px", overflow: "auto" }}>
-            {JSON.stringify(architecture, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      {schema && (
-        <div style={{ marginTop: "24px" }}>
-          <h2>Stage 3 — Schemas</h2>
-          <pre style={{ background: "#f4f4f4", padding: "16px", overflow: "auto" }}>
-            {JSON.stringify(schema, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      {validation && (
-        <div style={{ marginTop: "24px" }}>
-          <h2>Stage 4 — Validation</h2>
-          <p style={{ color: validation.passed ? "green" : "red" }}>
-            {validation.passed ? "✅ All checks passed" : `❌ ${validation.errors.length} errors found`}
-          </p>
-          {validation.checks.map((check: any, i: number) => (
-            <div key={i} style={{ padding: "4px 0", color: check.pass ? "green" : "red" }}>
-              {check.pass ? "✓" : "✗"} {check.msg}
-            </div>
+        {/* Examples */}
+        <div style={{ padding: "0 20px", marginBottom: "12px" }}>
+          <div style={{ fontSize: "11px", fontWeight: "600", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>Quick Examples</div>
+          {[
+            "Build a CRM with login, contacts, dashboard, admin and user roles, and payments.",
+            "Build a blog with posts, comments, and admin and user roles.",
+            "Build a task manager with projects, tasks, and team collaboration."
+          ].map((ex, i) => (
+            <button key={i} onClick={() => setPrompt(ex)}
+              style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 10px", marginBottom: "4px", background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: "6px", fontSize: "11px", color: "#9ca3af", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+              → {ex.slice(0, 50)}...
+            </button>
           ))}
         </div>
-      )}
+
+        {/* Generate Button */}
+        <div style={{ padding: "20px", borderTop: "1px solid #1e1e2e" }}>
+          {error && (
+            <div style={{ marginBottom: "12px", padding: "10px 12px", background: "#2d1515", border: "1px solid #7f1d1d", borderRadius: "6px", fontSize: "12px", color: "#fca5a5" }}>
+              ⚠ {error}
+            </div>
+          )}
+          <button
+            onClick={() => runPipeline().catch((err: any) => {
+              setError(err.message || "Something went wrong.");
+              setLoading(false);
+              setStage("");
+            })}
+            disabled={loading || !prompt.trim()}
+            style={{ width: "100%", padding: "12px", background: loading ? "#2a2a3e" : "#6366f1", color: loading ? "#6b7280" : "#ffffff", border: "none", borderRadius: "8px", fontSize: "14px", fontWeight: "600", cursor: loading ? "not-allowed" : "pointer", fontFamily: "'Inter', sans-serif" }}
+          >
+            {loading ? stage || "Running..." : "Generate Schema →"}
+          </button>
+        </div>
       </div>
+
+      {/* Right Panel */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#0a0a12", overflow: "hidden" }}>
+        
+        {/* Stage Tabs */}
+        <div style={{ display: "flex", borderBottom: "1px solid #1e1e2e", background: "#0f0f17", padding: "0 24px" }}>
+          {[
+            { id: "intent", label: "1. Intent", data: intent },
+            { id: "architecture", label: "2. Architecture", data: architecture },
+            { id: "schema", label: "3. Schema", data: schema },
+            { id: "validation", label: "4. Validation", data: validation },
+          ].map((tab) => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              style={{ 
+                padding: "14px 16px", 
+                border: "none", 
+                borderBottom: activeTab === tab.id ? "2px solid #6366f1" : "2px solid transparent", 
+                background: "transparent", 
+                fontSize: "13px", 
+                fontWeight: activeTab === tab.id ? "600" : "400", 
+                color: activeTab === tab.id ? "#ffffff" : "#4b5563", 
+                cursor: "pointer", 
+                fontFamily: "'Inter', sans-serif", 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "6px" 
+              }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: tab.data ? "#10b981" : "#d1d5db", display: "inline-block" }} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Output Area */}
+        <div style={{ flex: 1, overflow: "auto", padding: "24px" }}>
+          
+          {/* Empty state */}
+          {!intent && !loading && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "#9ca3af", textAlign: "center" }}>
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>⬡</div>
+              <div style={{ fontSize: "16px", fontWeight: "500", color: "#e2e8f0" }}>Ready to compile</div>
+              <div style={{ fontSize: "13px", marginTop: "8px" }}>Enter a prompt and click Generate Schema</div>
+            </div>
+          )}
+
+          {/* Stage 1 - Intent */}
+          {activeTab === "intent" && intent && (
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Intent Extraction</div>
+              {intent.ambiguities?.length > 0 && (
+                <div style={{ padding: "12px 16px", background: "#1f1a0a", border: "1px solid #3d3000", borderRadius: "8px", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#fbbf24", marginBottom: "6px" }}>⚠ AMBIGUITIES</div>
+                  {intent.ambiguities.map((a: string, i: number) => <div key={i} style={{ fontSize: "12px", color: "#fcd34d" }}>• {a}</div>)}
+                </div>
+              )}
+              {intent.assumptions?.length > 0 && (
+                <div style={{ padding: "12px 16px", background: "#0a1f0f", border: "1px solid #003d1a", borderRadius: "8px", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px", fontWeight: "600", color: "#34d399", marginBottom: "6px" }}>✓ ASSUMPTIONS</div>
+                  {intent.assumptions.map((a: string, i: number) => <div key={i} style={{ fontSize: "12px", color: "#6ee7b7" }}>• {a}</div>)}
+                </div>
+              )}
+              <pre style={{ background: "#1f2937", color: "#e5e7eb", padding: "20px", borderRadius: "8px", fontSize: "12px", overflow: "auto", lineHeight: "1.6" }}>
+                {JSON.stringify(intent, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Stage 2 - Architecture */}
+          {activeTab === "architecture" && architecture && (
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Architecture Design</div>
+              <pre style={{ background: "#1f2937", color: "#e5e7eb", padding: "20px", borderRadius: "8px", fontSize: "12px", overflow: "auto", lineHeight: "1.6" }}>
+                {JSON.stringify(architecture, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Stage 3 - Schema */}
+          {activeTab === "schema" && schema && (
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Generated Schemas</div>
+              <pre style={{ background: "#1f2937", color: "#e5e7eb", padding: "20px", borderRadius: "8px", fontSize: "12px", overflow: "auto", lineHeight: "1.6" }}>
+                {JSON.stringify(schema, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Stage 4 - Validation */}
+          {activeTab === "validation" && validation && (
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Validation Results</div>
+              <div style={{ padding: "16px", background: validation.passed ? "#0a1f0f" : "#1f0a0a", border: `1px solid ${validation.passed ? "#bbf7d0" : "#fecaca"}`, borderRadius: "8px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "14px", fontWeight: "600", color: validation.passed ? "#34d399" : "#f87171" }}>
+                  {validation.passed ? "✅ All checks passed" : `❌ ${validation.errors.length} errors found`}
+                </div>
+                {validation.repaired && <div style={{ fontSize: "12px", color: "#d97706", marginTop: "4px" }}>🔧 Schema was automatically repaired</div>}
+              </div>
+              <div style={{ background: "#0f0f17", border: "1px solid #1e1e2e", borderRadius: "8px", overflow: "hidden" }}>
+                {validation.checks.map((check: any, i: number) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px", padding: "10px 16px", borderBottom: i < validation.checks.length - 1 ? "1px solid #1e1e2e" : "none" }}>
+                    <span style={{ color: check.pass ? "#10b981" : "#ef4444", fontSize: "14px" }}>{check.pass ? "✓" : "✗"}</span>
+                    <span style={{ fontSize: "12px", color: "#e2e8f0", fontFamily: "monospace" }}>{check.msg}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
