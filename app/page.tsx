@@ -9,6 +9,50 @@ export default function Home() {
     const [architecture, setArchitecture] = useState(null);
     const [schema, setSchema] = useState(null);
     const [validation, setValidation] = useState<any>(null);
+    const [error,setError] = useState("");
+    
+function safeParseJSON(text: string): any | null {
+  try {
+    const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+    return JSON.parse(clean);
+  } catch (e) {
+    return null;
+  }
+}
+    
+function validateSchemas(schema: any) {
+  const errors: string[] = [];
+  const checks: { pass: boolean; msg: string }[] = [];
+
+  const dbTables = schema.db.tables.map((t: any) => t.name.toLowerCase());
+  schema.api.endpoints.forEach((ep: any) => {
+    if (ep.entity) {
+      const found = dbTables.some((t: any) => t.includes(ep.entity.toLowerCase()));
+      if (found) {
+        checks.push({ pass: true, msg: `API /${ep.path} → DB table found` });
+      } else {
+        errors.push(`API endpoint /${ep.path} references "${ep.entity}" but no matching DB table`);
+        checks.push({ pass: false, msg: `API /${ep.path} → no DB table for "${ep.entity}"` });
+      }
+    }
+  });
+
+  const authRoles = schema.auth.roles.map((r: any) => r.toLowerCase());
+  schema.ui.pages.forEach((page: any) => {
+    if (page.access_roles) {
+      page.access_roles.forEach((role: any) => {
+        if (authRoles.includes(role.toLowerCase())) {
+          checks.push({ pass: true, msg: `UI "${page.name}" → role "${role}" verified` });
+        } else {
+          errors.push(`UI page "${page.name}" uses role "${role}" not defined in auth`);
+          checks.push({ pass: false, msg: `UI "${page.name}" → role "${role}" undefined` });
+        }
+      });
+    }
+  });
+
+  return { errors, checks, passed: errors.length === 0 };
+}
 
 async function runPipeline() {
   setLoading(true);
@@ -17,6 +61,7 @@ async function runPipeline() {
   setSchema(null);
   setValidation(null);
   setOutput(null);
+  setError("");
 
   try {
     // Stage 1 - Intent Extraction
@@ -25,8 +70,8 @@ async function runPipeline() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 4000,
         system: `You are an intent extraction engine. Extract structured intent from user prompts.
 Respond ONLY with valid JSON, no markdown, no explanation.
 Return this exact structure:
@@ -43,8 +88,20 @@ Return this exact structure:
       }),
     });
     const intentData = await intentRes.json();
-    const intentText = intentData.choices[0].message.content;
-    const intentParsed = JSON.parse(intentText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+    const intentText = intentData.choices[0]?.message?.content;
+    if (!intentText) {
+      setError(intentData.error?.message || "No response from AI. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
+    const intentParsed = safeParseJSON(intentText);
+    if (!intentParsed) {
+      setError("Failed to extract intent. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
     setIntent(intentParsed);
 
     //Stage 2 - Architecture Design 
@@ -54,8 +111,8 @@ Return this exact structure:
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 4000,
         system: `You are an architecture designer. Respond ONLY with valid JSON, no markdown.
 Return this exact structure:
 {
@@ -67,8 +124,20 @@ Return this exact structure:
       }),
     });
     const archData = await archRes.json();
-    const archText = archData.choices[0].message.content;
-    const archParsed = JSON.parse(archText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+    const archText = archData.choices[0]?.message?.content;
+    if (!archText) {
+      setError(archData.error?.message || "No response from AI. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
+    const archParsed = safeParseJSON(archText);
+    if (!archParsed) {
+      setError("Failed to design architecture. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
     setArchitecture(archParsed);  
     
     // Stage 3 - Schema Generation
@@ -77,9 +146,10 @@ Return this exact structure:
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 4000,
         system: `You are a schema generation engine. Produce DB, API, UI, and Auth schemas.
+        Be concise - maximum 6 tables, 8 endpoints, 6 pages.
 Respond ONLY with valid JSON, no markdown.
 Return this exact structure:
 {
@@ -100,10 +170,23 @@ Return this exact structure:
 }`,
         messages: [{ role: "user", content: `Generate schemas. Intent: ${JSON.stringify(intentParsed)} Architecture: ${JSON.stringify(archParsed)}` }],
       }),
-    });
+    });    
     const schemaData = await schemaRes.json();
-    const schemaText = schemaData.choices[0].message.content;
-    const schemaParsed = JSON.parse(schemaText.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+    const schemaText = schemaData.choices[0]?.message?.content;
+    if (!schemaText) {
+      setError(schemaData.error?.message || "No response from AI. Please try again.");
+      setLoading(false);
+      setStage("");
+      return;
+    }
+    const schemaParsed = safeParseJSON(schemaText);
+    if (!schemaParsed) {
+       setError("Prompt too complex. Try a simpler description.");
+       setLoading(false);
+       setStage("");
+       return;
+    }
+    console.log("schemaParsed value:", schemaParsed);
     setSchema(schemaParsed);
 
     // Stage 4 - Validation
@@ -144,10 +227,47 @@ Return this exact structure:
     setValidation(validationResult);
     setOutput(schemaParsed);
 
+    // Repair Engine
+    if (!validationResult.passed) {
+      console.log("Repair engine triggered", validationResult.errors);
+      setStage("Repairing schema...");
+      const repairRes = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          max_tokens: 4000,
+          system: `You are a schema repair engine. You will be given a schema with validation errors. Fix only the errors and return the complete corrected schema. Respond ONLY with valid JSON, no markdown, no explanation.`,
+          messages: [{
+            role: "user",
+            content: `Fix these errors: ${JSON.stringify(validationResult.errors)}
+In this schema: ${JSON.stringify(schemaParsed)}`
+          }],
+        }),
+      });
+      const repairData = await repairRes.json();
+      const repairText = repairData.choices[0].message.content;
+      const repairedSchema = safeParseJSON(repairText);
+      if (!repairedSchema) {
+        setError("Repair failed. Please try again with a simpler prompt.");
+        setLoading(false);
+        setStage("");
+        return;
+      }
+      
+      // Validate again after repair
+      const revalidation = validateSchemas(repairedSchema);
+      setSchema(repairedSchema);
+      setValidation({ ...revalidation, repaired: true });
+      setOutput(repairedSchema);
+    }
 
 
-  } catch (error) {
-    console.error(error);
+
+  } catch (err: any) {
+    console.log("CATCH BLOCK HIT", err.message);
+    console.error(err);
+    setError(err.message || "Something went wrong.");
   } finally {
     setLoading(false);
     setStage("");
@@ -167,12 +287,22 @@ Return this exact structure:
       />
 
       <button
-        onClick={() => runPipeline()}
+        onClick={() => runPipeline().catch((err: any) => {
+          setError(err.message || "Something went wrong.");
+          setLoading(false);
+          setStage("");
+        })}
         disabled={loading || !prompt.trim()}
         style={{ marginTop: "12px", padding: "12px 24px", fontSize: "14px" }}
       >
         {loading ? stage || "Running..." : "Generate Schema"}
       </button>
+
+      {error && (
+        <div style={{ marginTop: "16px", color: "red", padding: "12px", background: "#fff0f0", borderRadius: "8px" }}>
+          ⚠ {error}
+        </div>
+      )}
 
       {intent && (
         <div style={{ marginTop: "24px" }}>
@@ -217,5 +347,6 @@ Return this exact structure:
       </div>
   );
 }
+
 
 
