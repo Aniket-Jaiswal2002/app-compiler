@@ -20,6 +20,7 @@ Natural language → working deployed application. End to end, no manual steps.
 
 ## Pipeline Architecture
 
+```
 User Prompt
 │
 ▼
@@ -33,6 +34,8 @@ User Prompt
 → cross-layer consistency checks
 → if errors found → Repair Engine → re-validate
 [Final] Validated App Blueprint
+
+```
 
 ## Key Design Decisions
 
