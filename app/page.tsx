@@ -1,4 +1,5 @@
 "use client"
+import { generatePrismaSchema } from "./lib/generators";
 import { useState } from "react"
 export default function Home() {
     const [prompt, setPrompt] = useState("");
@@ -11,6 +12,8 @@ export default function Home() {
     const [validation, setValidation] = useState<any>(null);
     const [error,setError] = useState("");
     const [activeTab, setActiveTab] = useState("intent");
+
+
     
 function safeParseJSON(text: string): any | null {
   try {
@@ -296,7 +299,20 @@ In this schema: ${JSON.stringify(schemaParsed)}`
     setStage("");
   }
 }
-    return (
+    
+function downloadPrismaSchema() {
+    if (!schema) return;
+    const prismaSchema = generatePrismaSchema((schema as any).db);
+    const blob = new Blob([prismaSchema], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "schema.prisma";
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+return (
     <div style={{ display: "flex", height: "100vh", fontFamily: "'Inter', sans-serif" }}>
       
       {/* Left Panel */}
@@ -437,13 +453,19 @@ In this schema: ${JSON.stringify(schemaParsed)}`
 
           {/* Stage 3 - Schema */}
           {activeTab === "schema" && schema && (
-            <div>
-              <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", marginBottom: "16px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Generated Schemas</div>
-              <pre style={{ background: "#1f2937", color: "#e5e7eb", padding: "20px", borderRadius: "8px", fontSize: "12px", overflow: "auto", lineHeight: "1.6" }}>
-                {JSON.stringify(schema, null, 2)}
-              </pre>
-            </div>
-          )}
+           <div>
+             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
+               <div style={{ fontSize: "13px", fontWeight: "600", color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.05em" }}>Generated Schemas</div>
+               <button onClick={downloadPrismaSchema}
+                 style={{ padding: "8px 16px", background: "#6366f1", color: "#ffffff", border: "none", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "'Inter', sans-serif" }}>
+                 ↓ Download schema.prisma
+               </button>
+             </div>
+             <pre style={{ background: "#1f2937", color: "#e5e7eb", padding: "20px", borderRadius: "8px", fontSize: "12px", overflow: "auto", lineHeight: "1.6" }}>
+               {JSON.stringify(schema, null, 2)}
+             </pre>
+          </div>
+       )}
 
           {/* Stage 4 - Validation */}
           {activeTab === "validation" && validation && (

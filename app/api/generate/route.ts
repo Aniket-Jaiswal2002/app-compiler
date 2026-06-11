@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
-      max_tokens: 1000,
+      max_tokens: body.max_tokens || 1000,
       messages: messages,
     }),
   });
