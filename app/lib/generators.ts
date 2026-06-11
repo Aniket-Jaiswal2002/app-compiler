@@ -36,22 +36,25 @@ generator client {
 `;
 
   for (const table of dbSchema.tables) {
-    const modelName = toModelName(table.name);
-    schema += `model ${modelName} {\n`;
+  const modelName = toModelName(table.name);
+  schema += `model ${modelName} {\n`;
+  
+  let hasPrimaryKey = false;
 
-    for (const column of table.columns) {
-      const prismaType = sqlTypeToPrisma(column.type);
-      const isPrimaryKey = column.primary_key;
+  for (const column of table.columns) {
+    const prismaType = sqlTypeToPrisma(column.type);
+    const isPrimaryKey = column.primary_key && !hasPrimaryKey;
 
-      if (isPrimaryKey) {
-        schema += `  ${column.name}  ${prismaType}  @id @default(autoincrement())\n`;
-      } else {
-        schema += `  ${column.name}  ${prismaType}\n`;
-      }
+    if (isPrimaryKey) {
+      hasPrimaryKey = true;
+      schema += `  ${column.name}  ${prismaType}  @id @default(autoincrement())\n`;
+    } else {
+      schema += `  ${column.name}  ${prismaType}\n`;
     }
-
-    schema += `}\n\n`;
   }
 
-  return schema;
-}    
+  schema += `}\n\n`;
+}
+
+return schema;
+}
